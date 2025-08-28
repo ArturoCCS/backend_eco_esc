@@ -1,0 +1,23 @@
+{
+    "roles": [
+      {
+        "name": "Administrador",
+        "permissions": [
+          "create_content",
+          "read_record",
+          "update_record",
+          "delete_content"
+        ]
+      },
+      {
+        "name": "Encargado",
+        "permissions": [
+        ]
+      },
+      {
+        "name": "Default",
+        "permissions": [
+        ]
+      }
+    ]
+  }
