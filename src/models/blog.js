@@ -18,8 +18,11 @@ const Blog = sequelize.define('Blog', {
       Tipo: {
         type: DataTypes.STRING,
         allowNull: false
-      }
-      ,
+      },
+      id_usuario: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+      },
       Fecha_Creacion: {
         type: DataTypes.STRING,
         allowNull: false

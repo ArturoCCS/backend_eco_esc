@@ -242,6 +242,7 @@ export const checkAuth = async (req, res) => {
       status: "success",
       message: "Autenticado correctamente",
       user: {
+        id_usuario: usuario.id_usuario,
         nombre: usuario.nombre,
         email: usuario.email,
         id_rol: usuario.id_rol,

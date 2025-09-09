@@ -11,11 +11,15 @@ const Capitulo = sequelize.define('Capitulo', {
         type: DataTypes.STRING,
         allowNull: false
       },
-      Descripcion: {
+      Contenido: {
         type: DataTypes.TEXT,
         allowNull: true
       },
       Orden: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+      },
+      ID_Blog: {
         type: DataTypes.INTEGER,
         allowNull: true
       }

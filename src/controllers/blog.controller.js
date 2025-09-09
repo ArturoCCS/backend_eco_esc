@@ -25,13 +25,18 @@ export const getBlogById = async (req, res) => {
 
 export const createBlog = async (req, res) => {
   try {
-    const { Titulo, Descripcion, Tipo } = req.body
+    const { Titulo, Descripcion, Tipo, id_usuario } = req.body
     const nuevoBlog = await Blog.create({
       Titulo,
       Descripcion,
-      Tipo
+      Tipo,
+      id_usuario,
+      Fecha_Creacion: new Date().toISOString().slice(0, 19).replace('T', ' ')
     })
-    res.status(201).json(nuevoBlog)
+    res.status(201).json({
+      message: 'Blog creado',
+      ID_Blog: nuevoBlog.ID_Blog
+    })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error al crear el blog' })
@@ -70,14 +75,17 @@ export const deleteBlog = async (req, res) => {
 
 export const createCapitulo = async (req, res) => {
   try {
-    const { Titulo, Descripcion, Orden, ID_Blog } = req.body
+    const { Titulo, Contenido, Orden, ID_Blog } = req.body
     const nuevoCapitulo = await Capitulo.create({
       Titulo,
-      Descripcion,
+      Contenido,
       Orden,
       ID_Blog
     })
-    res.status(201).json(nuevoCapitulo)
+    res.status(201).json({
+      message: 'Capítulo creado',
+      ID_Capitulo: nuevoCapitulo.ID_Capitulo
+    })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error al crear el capítulo' })

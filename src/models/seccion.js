@@ -18,6 +18,10 @@ import sequelize from '../database/db.js';
       Orden: {
         type: DataTypes.INTEGER,
         allowNull: true
+      },
+      ID_Capitulo: {
+        type: DataTypes.INTEGER,
+        allowNull: true
       }
     }, {
       tableName: 'Seccion',

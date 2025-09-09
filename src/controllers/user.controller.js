@@ -4,6 +4,21 @@ import { Op } from 'sequelize';
 import User from '../models/user.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
 
+export const getUserNameById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findByPk(id, {
+      attributes: ['id_usuario', 'nombre']
+    });
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.json({nombre: user.nombre });
+  } catch (error) {
+    res.status(500).json({ message: 'Error en el servidor', error });
+  }
+};
+
 export const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
 
