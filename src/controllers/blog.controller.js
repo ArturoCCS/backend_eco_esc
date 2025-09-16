@@ -75,7 +75,8 @@ export const deleteBlog = async (req, res) => {
 
 export const createCapitulo = async (req, res) => {
   try {
-    const { Titulo, Contenido, Orden, ID_Blog } = req.body
+    const ID_Blog = req.params.id; 
+    const { Titulo, Contenido, Orden} = req.body
     const nuevoCapitulo = await Capitulo.create({
       Titulo,
       Contenido,
@@ -94,7 +95,8 @@ export const createCapitulo = async (req, res) => {
 
 export const createSeccion = async (req, res) => {
   try {
-    const { Titulo, Contenido, Orden, ID_Capitulo } = req.body
+    const ID_Capitulo = req.params.id; 
+    const { Titulo, Contenido, Orden } = req.body
     const nuevaSeccion = await Seccion.create({
       Titulo,
       Contenido,

@@ -21,7 +21,7 @@ import sequelize from '../database/db.js';
       },
       ID_Capitulo: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: false
       }
     }, {
       tableName: 'Seccion',

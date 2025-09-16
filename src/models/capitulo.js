@@ -21,7 +21,7 @@ const Capitulo = sequelize.define('Capitulo', {
       },
       ID_Blog: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: false
       }
     }, {
       tableName: 'Capitulo',
