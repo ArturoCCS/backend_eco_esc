@@ -218,20 +218,21 @@ export const logout = async (_req, res) => {
   res.clearCookie('token', tokenCookieOptions())
   return res.status(200).json({ status: 'success', message: 'Sesión cerrada correctamente' })
 }
-
 export const checkAuth = async (req, res) => {
   try {
-    let token = req.cookies?.token
-    if (!token && req.headers.authorization?.startsWith('Bearer ')) {
-      token = req.headers.authorization.split(' ')[1]
-    }
-    if (!token) return res.status(401).json({ status: 'error', message: 'No autenticado' })
+    let token = null;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    const usuario = await User.findByPk(decoded.id)
-    if (!usuario) {
-      return res.status(401).json({ status: 'error', message: 'Usuario no encontrado' })
+    if (req.headers.authorization?.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies?.token) {
+      token = req.cookies.token;
     }
+
+    if (!token) return res.status(401).json({ status: 'error', message: 'No autenticado' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const usuario = await User.findByPk(decoded.id);
+    if (!usuario) return res.status(401).json({ status: 'error', message: 'Usuario no encontrado' });
 
     return res.status(200).json({
       status: 'success',
@@ -243,8 +244,8 @@ export const checkAuth = async (req, res) => {
         id_rol: usuario.id_rol
       },
       token
-    })
-  } catch (_) {
-    return res.status(401).json({ status: 'error', message: 'Token inválido o expirado' })
+    });
+  } catch (error) {
+    return res.status(401).json({ status: 'error', message: 'Token inválido o expirado' });
   }
-}
+};

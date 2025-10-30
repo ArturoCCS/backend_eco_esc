@@ -69,86 +69,44 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, passwor
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${URL_BACKEND}/auth/google/callback`,
-  passReqToCallback: false
+  callbackURL: `${URL_BACKEND}/auth/google/callback`
 }, async (_accessToken, _refreshToken, profile, done) => {
   try {
-    const email = getGoogleEmail(profile)
-    if (!email) return done(null, false, { message: 'No se pudo obtener el email del perfil de Google' })
+    const email = getGoogleEmail(profile);
+    if (!email) return done(null, false, { message: 'No se pudo obtener el email' });
 
-    let user = await User.findOne({ where: { email } })
-    if (!user) {
-      const id_rol = await resolveRoleForEmail(email) ?? normalizeRoleId(process.env.ROL_USER, 1)
-      const isConfirmed = isGoogleEmailVerified(profile)
-      user = await User.create({
-        nombre: profile.displayName || email.split('@')[0],
-        email,
-        password: null,
-        id_rol,
-        isConfirmed
-      })
-      user = await User.findOne({ where: { email } })
-    }
-    if (!user?.id_usuario) return done(new Error('El usuario no tiene un ID válido después de Google Auth'))
-    return done(null, user)
+    const isVerified = isGoogleEmailVerified(profile);
+    let user = await User.findOne({ where: { email } });
+
+    user = await handleExternalUser(user, email, isVerified);
+
+    return done(null, user);
   } catch (err) {
-    return done(err, null)
+    return done(err, null);
   }
-}))
+}));
 
 passport.use(new MicrosoftStrategy({
   clientID: process.env.MICROSOFT_CLIENT_ID,
   clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
   callbackURL: `${URL_BACKEND}/auth/microsoft/callback`,
-  scope: ['openid', 'User.Read', 'offline_access'],
-  authorizationURL: `https://login.microsoftonline.com/${MS_TENANT}/oauth2/v2.0/authorize`,
-  tokenURL: `https://login.microsoftonline.com/${MS_TENANT}/oauth2/v2.0/token`,
-  passReqToCallback: false
+  scope: ['openid','User.Read','offline_access']
 }, async (_accessToken, _refreshToken, profile, done) => {
   try {
-    const email = getMsEmail(profile)
-    if (!email) return done(null, false, { message: 'No se pudo obtener el email de Microsoft' })
+    const email = getMsEmail(profile);
+    if (!email) return done(null, false, { message: 'No se pudo obtener el email' });
 
-    const isInstitutional = email.toLowerCase().endsWith('@zitacuaro.tecnm.mx')
+    const isInstitutional = email.toLowerCase().endsWith('@zitacuaro.tecnm.mx');
+    let user = await User.findOne({ where: { email } });
 
-    let idRolEstudiante = Number(process.env.ROL_ESTUDIANTE) || Number(process.env.ROL_USER) || 1
-    if (EmailDomainRole) {
-      const map = await EmailDomainRole.findOne({ where: { domain: 'zitacuaro.tecnm.mx' } })
-      if (map?.id_rol) idRolEstudiante = Number(map.id_rol)
-    }
+    user = await handleExternalUser(user, email, isInstitutional);
 
-    let user = await User.findOne({ where: { email } })
-    if (!user) {
-      user = await User.create({
-        nombre: profile.displayName || email.split('@')[0],
-        email,
-        password: null,
-        id_rol: isInstitutional ? idRolEstudiante : (Number(process.env.ROL_USER) || 1),
-        isConfirmed: isInstitutional ? true : false
-      })
-      user = await User.findOne({ where: { email } })
-    } else {
-      const ROL_ADMIN = Number(process.env.ROL_ADMIN)
-      const ROL_DOCENTE = Number(process.env.ROL_ENCARGADO)
-      const privileged = [ROL_ADMIN, ROL_DOCENTE].includes(Number(user.id_rol))
-
-      if (isInstitutional && !privileged && user.id_rol !== idRolEstudiante) {
-        user.id_rol = idRolEstudiante
-      }
-      if (isInstitutional && !user.isConfirmed) {
-        user.isConfirmed = true
-        user.confirmationToken = null
-        user.confirmationExpires = null
-      }
-      await user.save()
-    }
-
-    if (!user?.id_usuario) return done(new Error('El usuario no tiene ID válido tras Microsoft Auth'))
-    return done(null, user)
+    return done(null, user);
   } catch (err) {
-    return done(err, null)
+    return done(err, null);
   }
-}))
+}));
+
 
 passport.serializeUser((user, done) => {
   if (!user || !user.id_usuario) return done(new Error('El usuario no tiene un ID válido'))
@@ -164,5 +122,49 @@ passport.deserializeUser(async (id, done) => {
     done(error)
   }
 })
+
+
+async function handleExternalUser(user, profileEmail, isVerified = false) {
+  let id_rol_final = Number(process.env.ROL_USER) || 1;
+  let needsConfirmation = false;
+
+  try {
+    const domain = profileEmail.split('@')[1].toLowerCase();
+    const map = await EmailDomainRole.findOne({ where: { domain } });
+    if (map?.id_rol) id_rol_final = Number(map.id_rol);
+    needsConfirmation = !!map?.require_verified && !isVerified;
+  } catch (_) {}
+
+  if (!user && !id_rol_final) {
+    id_rol_final = Number(process.env.ROL_USER) || 1;
+    needsConfirmation = !isVerified;
+  }
+
+  if (!user) {
+    const confirmationToken = needsConfirmation ? crypto.randomBytes(20).toString('hex') : null;
+    const confirmationExpires = needsConfirmation ? new Date(Date.now() + 3600000) : null;
+
+    user = await User.create({
+      nombre: profileEmail.split('@')[0],
+      email: profileEmail,
+      password: null,
+      id_rol: id_rol_final,
+      isConfirmed: !needsConfirmation,
+      confirmationToken,
+      confirmationExpires
+    });
+
+    if (needsConfirmation) await sendConfirmationEmail(profileEmail, confirmationToken);
+
+  } else if (needsConfirmation && !user.isConfirmed) {
+    user.confirmationToken = crypto.randomBytes(20).toString('hex');
+    user.confirmationExpires = new Date(Date.now() + 3600000);
+    await user.save();
+    await sendConfirmationEmail(user.email, user.confirmationToken);
+  }
+
+  return user;
+}
+
 
 export default passport
