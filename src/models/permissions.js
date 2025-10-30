@@ -1,8 +1,16 @@
-const roles = require("../config/roles.json");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const rolesData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "../config/roles.json"), "utf8")
+);
 
 class Permissions {
   constructor() {
-    this.roles = roles.roles;
+    this.roles = rolesData.roles;
   }
 
   getPermissionsByRoleName(roleName) {
