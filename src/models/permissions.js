@@ -1,4 +1,4 @@
-import roles from "../config/roles.json" assert { type: "json" };
+const roles = require("../config/roles.json");
 
 class Permissions {
   constructor() {
