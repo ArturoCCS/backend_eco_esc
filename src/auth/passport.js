@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as MicrosoftStrategy } from 'passport-microsoft';
-import EmailDomainRole from '../models/EmailDomainRole.js';
+import EmailDomainRole from '../models/email_Domain_Role.js';
 import User from '../models/user.js';
 
 const URL_BACKEND = process.env.URL_BACKEND || 'http://localhost:3000';
