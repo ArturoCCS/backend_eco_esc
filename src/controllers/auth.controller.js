@@ -2,12 +2,10 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import passport from '../auth/passport.js';
-import EmailDomainRole from '../models/email_Domain_Role.js';
 import User from '../models/user.js';
 import { sendConfirmationEmail } from '../services/emailService.js';
 
 const URL_FRONTEND = process.env.URL_FRONTEND || 'http://localhost:5173';
-const ROL_ESTUDIANTE = process.env.ROL_ESTUDIANTE
 
 function tokenCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -19,34 +17,20 @@ function tokenCookieOptions() {
   };
 }
 
-async function resolveRoleForEmail(email) {
-  const domain = String(email.split('@')[1] || '').toLowerCase();
-  if (!domain) return Number(process.env.ROL_USER);
-
-  try {
-    if (domain === 'zitacuaro.tecnm.mx') return ROL_ESTUDIANTE;
-    const map = await EmailDomainRole.findOne({ where: { domain } });
-    if (map?.id_rol) return Number(map.id_rol);
-  } catch (_) {}
-
-  return Number(process.env.ROL_USER);
-}
-
 export const register = async (req, res) => {
   const { nombre, email, password } = req.body;
   if (!nombre || !email || !password)
     return res.status(400).json({ status: 'error', message: 'Faltan datos requeridos' });
 
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-  if (!passwordRegex.test(password))
+  if (!passwordRegex.test(password)) {
     return res.status(400).json({ status: 'error', message: 'Contraseña inválida' });
+  }
 
   try {
     const exist = await User.findOne({ where: { email } });
-    if (exist)
-      return res.status(400).json({ status: 'error', message: 'Email ya registrado' });
+    if (exist) return res.status(400).json({ status: 'error', message: 'Email ya registrado' });
 
-    const id_rol = await resolveRoleForEmail(email);
     const confirmationToken = crypto.randomBytes(20).toString('hex');
     const confirmationExpires = new Date(Date.now() + 3600000);
 
@@ -54,17 +38,13 @@ export const register = async (req, res) => {
       nombre,
       email,
       password,
-      id_rol,
+      id_rol: Number(process.env.ROL_USER),
       confirmationToken,
       confirmationExpires,
       isConfirmed: false
     });
 
-    try {
-      await sendConfirmationEmail(email, confirmationToken);
-    } catch (err) {
-      console.error('Error al enviar correo:', err.message);
-    }
+    try { await sendConfirmationEmail(email, confirmationToken); } catch (_) {}
 
     return res.status(201).json({ status: 'success', message: 'Usuario registrado, revisa tu correo.' });
   } catch (err) {
@@ -91,28 +71,30 @@ export const confirmEmail = async (req, res) => {
     const user = await User.findOne({
       where: { confirmationToken: token, confirmationExpires: { [Op.gt]: new Date() } }
     });
-    if (!user)
-      return res.status(400).json({ status: 'error', message: 'Token inválido o expirado' });
+    if (!user) return res.status(400).json({ status: 'error', message: 'Token inválido o expirado' });
 
     user.isConfirmed = true;
     user.confirmationToken = null;
     user.confirmationExpires = null;
     await user.save();
-
     return res.status(200).json({ status: 'success', message: 'Correo confirmado' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: 'Error interno', error: err.message });
   }
 };
 
-export const withGoogle = passport.authenticate('google', { scope: ['profile', 'email'] });
-export const callbackGoogle = (req, res, next) => {
-  passport.authenticate('google', { failureRedirect: '/' }, async (err, user) => {
-    if (err || !user) return res.redirect('/');
-
-    if (!user.isConfirmed) {
-      user.isConfirmed = true;
-      await user.save();
+export const callbackGoogle = async (req, res, next) => {
+  passport.authenticate('google', { failureRedirect: '/' }, async (err, profileUser) => {
+    if (err || !profileUser) return res.redirect('/');
+    
+    let user = await User.findOne({ where: { email: profileUser.email } });
+    if (!user) {
+      user = await User.create({
+        nombre: profileUser.nombre || profileUser.displayName,
+        email: profileUser.email,
+        id_rol: Number(process.env.ROL_USER),
+        isConfirmed: true
+      });
     }
 
     const token = user.generateAuthToken();
@@ -121,16 +103,18 @@ export const callbackGoogle = (req, res, next) => {
   })(req, res, next);
 };
 
-export const withMicrosoft = passport.authenticate('microsoft', {
-  scope: ['openid', 'User.Read', 'offline_access']
-});
-export const callbackMicrosoft = (req, res, next) => {
-  passport.authenticate('microsoft', { failureRedirect: '/' }, async (err, user) => {
-    if (err || !user) return res.redirect('/');
-
-    if (!user.isConfirmed) {
-      user.isConfirmed = true;
-      await user.save();
+export const callbackMicrosoft = async (req, res, next) => {
+  passport.authenticate('microsoft', { failureRedirect: '/' }, async (err, profileUser) => {
+    if (err || !profileUser) return res.redirect('/');
+    
+    let user = await User.findOne({ where: { email: profileUser.email } });
+    if (!user) {
+      user = await User.create({
+        nombre: profileUser.nombre || profileUser.displayName,
+        email: profileUser.email,
+        id_rol: Number(process.env.ROL_USER),
+        isConfirmed: true
+      });
     }
 
     const token = user.generateAuthToken();
@@ -162,7 +146,7 @@ export const checkAuth = async (req, res) => {
   }
 };
 
-export const logout = async (req, res) => {
+export const logout = async (_req, res) => {
   res.clearCookie('token', tokenCookieOptions());
   return res.status(200).json({ status: 'success', message: 'Sesión cerrada' });
 };
