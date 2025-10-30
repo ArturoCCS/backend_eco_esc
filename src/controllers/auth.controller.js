@@ -8,6 +8,8 @@ import { sendConfirmationEmail } from '../services/emailService.js'
 import EmailDomainRole from '../models/email_Domain_Role.js'
 import Rol from '../models/roles.js'
 
+const URL_FRONTEND = process.env.URL_FRONTEND;
+
 function tokenCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production'
   return {
@@ -152,6 +154,7 @@ export const login = async (req, res, next) => {
 export const withGoogle = passport.authenticate('google', { scope: ['profile', 'email'] })
 
 export const callbackGoogle = async (req, res, next) => {
+  
   passport.authenticate('google', { failureRedirect: '/' }, async (err, user, info) => {
     if (err || !user) return res.redirect('/')
 
@@ -169,13 +172,13 @@ export const callbackGoogle = async (req, res, next) => {
         user.confirmationExpires = confirmationExpires
         await user.save()
         await sendConfirmationEmail(user.email, confirmationToken)
-        return res.redirect('http://localhost:8080/confirmation-required')
+        return res.redirect(`${URL_FRONTEND}/confirmation-required`)
       }
     }
 
     const token = user.generateAuthToken()
     res.cookie('token', token, tokenCookieOptions())
-    return res.redirect('http://localhost:8080/protected-route')
+    return res.redirect(`${URL_FRONTEND}/protected-route`)
   })(req, res, next)
 }
 
@@ -201,13 +204,13 @@ export const callbackMicrosoft = async (req, res, next) => {
         user.confirmationExpires = confirmationExpires
         await user.save()
         await sendConfirmationEmail(user.email, confirmationToken)
-        return res.redirect('http://localhost:8080/confirmation-required')
+        return res.redirect(`${URL_FRONTEND}/confirmation-required`)
       }
     }
 
     const token = user.generateAuthToken()
     res.cookie('token', token, tokenCookieOptions())
-    return res.redirect('http://localhost:8080/protected-route')
+    return res.redirect(`${URL_FRONTEND}/protected-route`)
   })(req, res, next)
 }
 

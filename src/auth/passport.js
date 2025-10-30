@@ -5,7 +5,7 @@ import { Strategy as LocalStrategy } from 'passport-local'
 import { Strategy as MicrosoftStrategy } from 'passport-microsoft'
 import User from '../models/user.js'
 
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || 'http://localhost:3000'
+const URL_BACKEND = process.env.URL_BACKEND || 'http://localhost:3000'
 const MS_TENANT = process.env.MICROSOFT_TENANT_ID || 'common'
 
 let EmailDomainRole, Rol
@@ -69,7 +69,7 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (email, passwor
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${BACKEND_BASE_URL}/auth/google/callback`,
+  callbackURL: `${URL_BACKEND}/auth/google/callback`,
   passReqToCallback: false
 }, async (_accessToken, _refreshToken, profile, done) => {
   try {
@@ -99,7 +99,7 @@ passport.use(new GoogleStrategy({
 passport.use(new MicrosoftStrategy({
   clientID: process.env.MICROSOFT_CLIENT_ID,
   clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-  callbackURL: `${BACKEND_BASE_URL}/auth/microsoft/callback`,
+  callbackURL: `${URL_BACKEND}/auth/microsoft/callback`,
   scope: ['openid', 'User.Read', 'offline_access'],
   authorizationURL: `https://login.microsoftonline.com/${MS_TENANT}/oauth2/v2.0/authorize`,
   tokenURL: `https://login.microsoftonline.com/${MS_TENANT}/oauth2/v2.0/token`,

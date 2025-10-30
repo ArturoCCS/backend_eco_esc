@@ -23,11 +23,11 @@ import '../src/utils/cronJobs.js';
 const PORT = process.env.PORT;
 const URL_BACKEND = process.env.URL_BACKEND ;
 const KEY = process.env.KEY;
-
+const URL_FRONTEND = process.env.URL_FRONTEND;
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:8080',
+  origin: URL_FRONTEND,
   credentials: true,
 }));
 

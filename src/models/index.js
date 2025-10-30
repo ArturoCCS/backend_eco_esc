@@ -9,8 +9,8 @@ import EmailDomainRole from './email_Domain_Role.js'
 import Rol from './roles.js'
 import Subject from './subject.js'
 import Topic from './topic.js'
-import UserCareer from './userCareer.js'
 import User from './user.js'
+import UserCareer from './userCareer.js'
 
 Blog.hasMany(BlogNode, { foreignKey: 'blog_id' })
 BlogNode.belongsTo(Blog, { foreignKey: 'blog_id' })

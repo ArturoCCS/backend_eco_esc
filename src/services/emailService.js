@@ -5,10 +5,11 @@ import transporter from '../config/emailConfig.js';
 
 const __filename = fileURLToPath(import.meta.url); 
 const __dirname = dirname(__filename); 
+const URL_FRONTEND = process.env.URL_FRONTEND;
 
 export const sendConfirmationEmail = (to, confirmationToken) => {
   ejs.renderFile(join(__dirname, '../views/emailTemplates/confirmationEmail.ejs'), { 
-    confirmationUrl: `http://localhost:8080/confirm/${confirmationToken}`
+    confirmationUrl: `${URL_FRONTEND}/confirm/${confirmationToken}`
   }, (err, html) => {
     if (err) {
       return;
@@ -33,7 +34,7 @@ export const sendConfirmationEmail = (to, confirmationToken) => {
 
 export const sendPasswordResetEmail = (to, recoveryToken) => {
   ejs.renderFile(join(__dirname, '../views/emailTemplates/passwordReset.ejs'), { 
-    resetLink: `http://localhost:8080/reset-password/${recoveryToken}`
+    resetLink: `${URL_FRONTEND}/reset-password/${recoveryToken}`
   }, (err, html) => {
     if (err) {
       console.error('Error al renderizar el template de correo:', err);
