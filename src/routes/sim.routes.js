@@ -79,10 +79,7 @@ router.post('/simulate', async (req, res) => {
   }
 });
 
-/**
- * POST /montecarlo
- * Body: { n, profile, semesterConfig, options, includeRuns }
- */
+
 async function runMonteCarloAsync(n, profile, semesterConfig, options = {}, yieldEvery = 50, includeRuns = false) {
   const runs = [];
   for (let i = 0; i < n; i++) {
