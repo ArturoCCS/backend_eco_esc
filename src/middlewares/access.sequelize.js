@@ -2,6 +2,7 @@ import { Op } from 'sequelize'
 import { Blog, BlogAllowedRole, BlogCareer, UserCareer } from '../models/index.js'
 
 export async function loadUserContext(req, _res, next) {
+  
   const user = req.user || null
   req.ctx = { user, roles: [], careers: [] }
   if (!user) return next()

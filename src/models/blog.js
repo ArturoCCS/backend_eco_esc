@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/db.js';
+
 class Blog extends Model {}
 Blog.init({
   ID_Blog: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },

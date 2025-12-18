@@ -8,6 +8,8 @@ import { createNode, listTree, moveNode, updateNode } from '../services/blogNode
 import { getSections } from '../services/sectionsService.sequelize.js'
 import { attachTagsToBlog } from '../services/tags.sequelize.js'
 
+import BlogSubjectMap from '../models/BlogSubjectMap.js'
+
 const router = express.Router()
 
 router.get('/', async (req, res) => {
@@ -23,6 +25,38 @@ router.get('/', async (req, res) => {
   const rows = await Blog.findAll({ where, include, order: [['Fecha_Creacion', 'DESC']], limit: 100, subQuery: false })
   res.json(rows)
 })
+
+router.get('/by-subject', async (req, res) => {
+  try {
+    const { subject_id, subject_code, unidad_index } = req.query
+    let slug = null
+
+    if (subject_id) {
+      const map = await BlogSubjectMap.findOne({ where: { id_subject: Number(subject_id) } })
+      if (!map) return res.json([])
+      slug = map.blog_subject_slug
+    } else if (subject_code) {
+      const map = await BlogSubjectMap.findOne({ where: { code: String(subject_code) } })
+      if (!map) return res.json([])
+      slug = map.blog_subject_slug
+    } else {
+      return res.status(400).json({ error: 'subject_id or subject_code required' })
+    }
+
+    const where = { subject_slug: slug }
+    if (unidad_index !== undefined) {
+      const ui = Number(unidad_index)
+      if (!Number.isNaN(ui)) where.unidad_index = ui
+    }
+
+    const posts = await Blog.findAll({ where, order: [['Fecha_Creacion', 'DESC']], limit: 20 })
+    res.json(posts)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'server_error' })
+  }
+})
+
 
 router.get('/sections', loadUserContext, async (req, res) => {
   const sections = await getSections({ q: req.query.q || '', userCtx: req.ctx })

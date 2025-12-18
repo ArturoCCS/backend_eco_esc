@@ -1,7 +1,6 @@
 import { calcularRiesgo } from '../motor/core.js';
 import { clamp01, triangular } from '../utils/distribution.js';
 
-
 function distribuirUnidades(unidades, totalWeeks) {
   const minWeeksPerUnit = 2;
   const totalNeeded = unidades * minWeeksPerUnit;
@@ -52,6 +51,17 @@ export function simulateSemester(profile, semesterConfig, options = {}) {
   calendario.forEach(item => porSemana[item.week].push(item));
 
   let estado = { ...profile };
+
+  if (typeof options.initialEstres === 'number') {
+    estado.estres = clamp01(options.initialEstres);
+  } else {
+    let initialEstres =
+      typeof profile.estres === 'number' ? clamp01(profile.estres) : 0.18;
+    if (initialEstres < 0.15) initialEstres = 0.15;
+    if (initialEstres > 0.35) initialEstres = 0.35;
+    estado.estres = initialEstres;
+  }
+
   const history = [];
 
   for (let w = 0; w < weeks; w++) {

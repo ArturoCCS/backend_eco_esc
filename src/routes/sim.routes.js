@@ -3,6 +3,10 @@ import { simulateSemester } from '../sim/semesterSimulator.js';
 
 const router = express.Router();
 
+const debugStore = {
+  last: null,
+};
+
 function isNumberBetween0and1(x) {
   return typeof x === 'number' && isFinite(x) && x >= 0 && x <= 1;
 }
@@ -41,25 +45,44 @@ function validateSemesterConfig(cfg) {
   return null;
 }
 
-
 router.post('/simulate', async (req, res) => {
   try {
     const { profile, semesterConfig, options } = req.body || {};
 
+    console.log('[SIM] /simulate received payload:', JSON.stringify({ profile, semesterConfig, options }, null, 2));
+
     const v1 = validateProfile(profile);
-    if (v1) return res.status(400).json({ error: v1 });
+    if (v1) {
+      debugStore.last = { received: { profile, semesterConfig, options }, result: null, error: v1 };
+      console.warn('[SIM] validateProfile error:', v1);
+      return res.status(400).json({ error: v1, where: 'profile', receivedType: typeof profile });
+    }
+
     const v2 = validateSemesterConfig(semesterConfig);
-    if (v2) return res.status(400).json({ error: v2 });
+    if (v2) {
+      debugStore.last = { received: { profile, semesterConfig, options }, result: null, error: v2 };
+      console.warn('[SIM] validateSemesterConfig error:', v2);
+      return res.status(400).json({ error: v2, where: 'semesterConfig' });
+    }
 
     const resultado = simulateSemester(profile, semesterConfig, options || {});
+
+    console.log('[SIM] /simulate result:', JSON.stringify(resultado, null, 2));
+
+    debugStore.last = { received: { profile, semesterConfig, options }, result: resultado, error: null };
+
     return res.json(resultado);
   } catch (err) {
     console.error('Error en /api/simulate', err);
+    debugStore.last = { received: req.body || null, result: null, error: err?.message || String(err) };
     return res.status(500).json({ error: err.message || String(err) });
   }
 });
 
-
+/**
+ * POST /montecarlo
+ * Body: { n, profile, semesterConfig, options, includeRuns }
+ */
 async function runMonteCarloAsync(n, profile, semesterConfig, options = {}, yieldEvery = 50, includeRuns = false) {
   const runs = [];
   for (let i = 0; i < n; i++) {
@@ -93,31 +116,39 @@ async function runMonteCarloAsync(n, profile, semesterConfig, options = {}, yiel
   };
 }
 
-/**
- * POST /api/montecarlo
- * Body: { n, profile, semesterConfig, options, includeRuns }
- * n default: 100
- * includeRuns default: false (avoids huge payloads)
- */
 router.post('/montecarlo', async (req, res) => {
   try {
     let { n, profile, semesterConfig, options, includeRuns } = req.body || {};
     n = Number(n) || 100;
     includeRuns = Boolean(includeRuns);
 
+    console.log('[SIM] /montecarlo received:', JSON.stringify({ n, profile, semesterConfig, options, includeRuns }, null, 2));
+
     if (n <= 0 || n > 2000) return res.status(400).json({ error: 'n must be between 1 and 2000 (upper limit to protect server)' });
 
     const v1 = validateProfile(profile);
-    if (v1) return res.status(400).json({ error: v1 });
+    if (v1) {
+      console.warn('[SIM] validateProfile error:', v1);
+      return res.status(400).json({ error: v1, where: 'profile' });
+    }
     const v2 = validateSemesterConfig(semesterConfig);
-    if (v2) return res.status(400).json({ error: v2 });
+    if (v2) {
+      console.warn('[SIM] validateSemesterConfig error:', v2);
+      return res.status(400).json({ error: v2, where: 'semesterConfig' });
+    }
 
     const resultado = await runMonteCarloAsync(n, profile, semesterConfig, options || {}, 50, includeRuns);
+    console.log('[SIM] /montecarlo result:', JSON.stringify(resultado, null, 2));
     return res.json(resultado);
   } catch (err) {
     console.error('Error en /api/montecarlo', err);
     return res.status(500).json({ error: err.message || String(err) });
   }
+});
+
+router.get('/debug/last', (req, res) => {
+  if (!debugStore.last) return res.json({ info: 'no data yet' });
+  return res.json(debugStore.last);
 });
 
 export default router;

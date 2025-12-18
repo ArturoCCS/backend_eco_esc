@@ -14,9 +14,13 @@ import catalogRoutes from '../src/routes/catalog.routes.js';
 import categoriaRoutes from '../src/routes/categoria.routes.js';
 import librosRoutes from '../src/routes/libro.routes.js';
 import plataformRouter from '../src/routes/plataform.routes.js';
+import psychRouter from '../src/routes/psych.routes.js';
 import simRoutes from '../src/routes/sim.routes.js';
+import subjectsRouter from '../src/routes/subjects.routes.js';
 import userRouter from '../src/routes/user.routes.js';
 import '../src/utils/cronJobs.js';
+
+
 
 import { calcularRiesgo } from '../src/motor/core.js';
 
@@ -25,7 +29,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const URL_BACKEND = process.env.URL_BACKEND || `http://localhost:${PORT}`;
 const KEY = process.env.KEY || 'secret';
-const URL_FRONTEND = process.env.URL_FRONTEND || '*';
+const URL_FRONTEND = process.env.URL_FRONTEND || 'http://localhost:8080';
 
 app.use(cors({
   origin: URL_FRONTEND,
@@ -55,9 +59,11 @@ app.use('/autor', autorRoutes);
 app.use('/categoria', categoriaRoutes);
 app.use('/plataform', plataformRouter);
 app.use('/ai', aiRoutes);
-app.use('/api', simRoutes);
 app.use('/api/blogs', loadUserContext, blogsRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/psych', loadUserContext, psychRouter);
+app.use('/api/subjects', subjectsRouter);
+app.use('/api/simulate', simRoutes);
 
 app.post('/api/calc', (req, res) => {
   try {
